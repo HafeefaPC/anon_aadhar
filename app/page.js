@@ -1,13 +1,17 @@
-'use client'
+'use client';
 import { useState, useEffect } from 'react';
 import Web3 from 'web3';
-import { LogInWithAnonAadhaar, useAnonAadhaar, AnonAadhaarProof } from "@anon-aadhaar/react";
+import { LogInWithAnonAadhaar, useAnonAadhaar, AnonAadhaarProof } from '@anon-aadhaar/react';
 
 const Home = () => {
   const [isConnected, setIsConnected] = useState(false);
-  const [ethBalance, setEthBalance] = useState("");
-  const [walletAddress, setWalletAddress] = useState(""); // State to store wallet address
-  const [anonAadhaar] = useAnonAadhaar(); // Hook for Anon Aadhaar
+  const [ethBalance, setEthBalance] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [revealAge, setRevealAge] = useState(false);
+  const [revealGender, setRevealGender] = useState(false);
+  const [revealState, setRevealState] = useState(false);
+  const [revealPinCode, setRevealPinCode] = useState(false);
+  const [anonAadhaar] = useAnonAadhaar();
 
   const detectCurrentProvider = () => {
     let provider;
@@ -16,7 +20,7 @@ const Home = () => {
     } else if (window.web3) {
       provider = window.web3.currentProvider;
     } else {
-      console.log("Non-ethereum browser detected. You should install Metamask");
+      console.log('Non-ethereum browser detected. You should install Metamask');
     }
     return provider;
   };
@@ -31,7 +35,7 @@ const Home = () => {
         const account = userAccounts[0];
         let balance = await web3.eth.getBalance(account);
         setEthBalance(balance);
-        setWalletAddress(account); // Set wallet address when connected
+        setWalletAddress(account);
         setIsConnected(true);
       }
     } catch (err) {
@@ -41,8 +45,27 @@ const Home = () => {
 
   const onDisconnect = () => {
     setIsConnected(false);
-    setEthBalance(""); // Clear balance on disconnect
-    setWalletAddress(""); // Clear wallet address on disconnect
+    setEthBalance('');
+    setWalletAddress('');
+  };
+
+  const handleRevealToggle = (field) => {
+    switch (field) {
+      case 'age':
+        setRevealAge(!revealAge);
+        break;
+      case 'gender':
+        setRevealGender(!revealGender);
+        break;
+      case 'state':
+        setRevealState(!revealState);
+        break;
+      case 'pincode':
+        setRevealPinCode(!revealPinCode);
+        break;
+      default:
+        break;
+    }
   };
 
   return (
@@ -63,14 +86,13 @@ const Home = () => {
             <div>
               <h2>You are connected to MetaMask.</h2>
               <div>
-                <span>Address: {walletAddress}</span> {/* Display wallet address */}
+                <span>Address: {walletAddress}</span>
               </div>
               <div>
                 <span>Balance: {ethBalance}</span>
               </div>
             </div>
-            <div className='flex flex-row gap-4 p-3'>
-              
+            <div className="flex flex-row gap-4 p-3">
               <button
                 className="bg-black hover:bg-slate-600 text-white font-bold py-2 px-4 rounded"
                 onClick={onDisconnect}
@@ -82,23 +104,48 @@ const Home = () => {
         )}
       </div>
 
-      {/* Anon Aadhaar Status and Proof Display */}
-      { isConnected ==true && (
+      {isConnected && (
         <div className="flex justify-center p-8 items-center space-x-4">
           <div className="border rounded-lg p-4 border-white">
-            <LogInWithAnonAadhaar nullifierSeed={1234} />
+            <LogInWithAnonAadhaar
+              nullifierSeed={1234}
+              fieldsToReveal={[
+                revealAge && 'revealAgeAbove18',
+                revealGender && 'revealGender',
+                revealState && 'revealState',
+                revealPinCode && 'revealPinCode',
+              ].filter(Boolean)}
+            />
           </div>
 
           <div className="ml-3 border rounded-lg p-6">
             <p>{anonAadhaar.status}</p>
-
-            {/* Display the proof if generated and valid */}
-            {anonAadhaar.status === "logged-in" && (
+            {anonAadhaar.status === 'logged-in' && (
               <>
                 <p>✅ Proof is valid</p>
                 <AnonAadhaarProof code={JSON.stringify(anonAadhaar.anonAadhaarProof, null, 2)} />
               </>
             )}
+          </div>
+
+          <div className="flex flex-col ml-3 border rounded-lg p-6">
+            <p>Choose data to reveal:</p>
+            <label>
+              <input type="checkbox" checked={revealAge} onChange={() => handleRevealToggle('age')} />
+              Reveal Age Above 18
+            </label>
+            <label>
+              <input type="checkbox" checked={revealGender} onChange={() => handleRevealToggle('gender')} />
+              Reveal Gender
+            </label>
+            <label>
+              <input type="checkbox" checked={revealState} onChange={() => handleRevealToggle('state')} />
+              Reveal State
+            </label>
+            <label>
+              <input type="checkbox" checked={revealPinCode} onChange={() => handleRevealToggle('pincode')} />
+              Reveal PinCode
+            </label>
           </div>
         </div>
       )}
